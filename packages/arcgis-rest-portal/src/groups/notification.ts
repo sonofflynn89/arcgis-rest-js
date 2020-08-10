@@ -75,3 +75,31 @@ export function createGroupNotification(
   };
   return request(url, options);
 }
+
+// /**
+//  * Send an email notification to members of the requesting user's org
+//  *
+//  * TODO: Add Interfaces
+//  * @param {object} options
+//  *
+//  * @returns {object}
+//  */
+// export function sendOrgNotification (options) {
+//   const url = `${getPortalUrl(options)}/portals/self/createNotification`;
+//   const roParams = [
+//     { name: 'message', value: options.message },
+//     { name: 'subject', value: options.subject },
+//     { name: 'notificationChannelType', value: options.notificationChannelType },
+//   ];
+//   const requestOptions = _convertToRequestOptions(options, roParams);
+
+//   const requestOptionsFactory = users => {
+//     const paramsCopy = Object.assign({}, requestOptions.params);
+//     const optionsCopy = Object.assign({}, requestOptions, { params: paramsCopy });
+//     optionsCopy.params.users = users;
+
+//     return optionsCopy;
+//   };
+
+//   return _sendBatchRequests(url, options.users, requestOptionsFactory, options.batchSize).then(_combineSimpleBatchResults);
+// }

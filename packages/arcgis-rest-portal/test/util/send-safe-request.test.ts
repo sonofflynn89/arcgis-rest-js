@@ -1,6 +1,6 @@
 import * as RequestModule from "@esri/arcgis-rest-request";
-import { IRequestOptions } from "@esri/arcgis-rest-request";
-import { _sendSafeRequest } from "../../src/util/send-safe-request";
+import { ArcGISRequestError, IRequestOptions } from "@esri/arcgis-rest-request";
+import { ISafeResponse, _sendSafeRequest } from "../../src/util/send-safe-request";
 
 describe('_sendSafeRequest', () => {
   let paramsSpy: jasmine.Spy;
@@ -28,7 +28,12 @@ describe('_sendSafeRequest', () => {
   });
 
   it('Returns response of delegated method if promise is not rejected', async () => {
-    const expectedResult = { success: true };
+    interface IMyResponse extends ISafeResponse {
+      name: string,
+      age: number
+    }
+
+    const expectedResult: IMyResponse = { success: true, name: 'Mickey Mouse', age: 95 };
     paramsSpy.and.callFake(() => Promise.resolve(expectedResult));
 
     const actualResult = await _sendSafeRequest('fake-url', null);
@@ -36,9 +41,9 @@ describe('_sendSafeRequest', () => {
     expect(actualResult).toEqual(expectedResult);
   });
 
-  it('Returns IErrorResponse with consolidated errors if promise is rejected', async () => {
-    const error = 'This is not a drill';
-    const expectedResult = { errors: [error] };
+  it('Returns ISafeResponse with consolidated errors if promise is rejected', async () => {
+    const error = new ArcGISRequestError('This is not a drill');
+    const expectedResult: ISafeResponse = { success: false, errors: [error] };
     paramsSpy.and.callFake(() => Promise.reject(error));
 
     const actualResult = await _sendSafeRequest('fake-url', null);

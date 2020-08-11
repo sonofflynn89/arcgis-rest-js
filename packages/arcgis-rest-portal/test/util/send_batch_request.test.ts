@@ -1,6 +1,7 @@
 import { _sendBatchRequests } from "../../src/util/send-batch-requests";
 import * as sendSafeRequestModule from "../../src/util/send-safe-request";
 import * as chunkModule from "../../src/util/array";
+import { IRequestOptions } from "@esri/arcgis-rest-request";
 
 describe('_sendBatchRequests', () => {
   let sendSafeRequestSpy: jasmine.Spy;
@@ -22,7 +23,7 @@ describe('_sendBatchRequests', () => {
     const optionsFactory: () => any = () => null;
     const items: any[] = [];
 
-    await _sendBatchRequests('fake-url', items, optionsFactory)
+    await _sendBatchRequests<sendSafeRequestModule.ISafeResponse>('fake-url', items, optionsFactory)
     expect(chunkSpy).toHaveBeenCalledWith(items, 25);
   });
 
@@ -32,7 +33,7 @@ describe('_sendBatchRequests', () => {
     const optionsFactory: () => any = () => null;
     const items: any[] = [];
 
-    await _sendBatchRequests('fake-url', items, optionsFactory, 2)
+    await _sendBatchRequests<sendSafeRequestModule.ISafeResponse>('fake-url', items, optionsFactory, 2)
     expect(chunkSpy).toHaveBeenCalledWith(items, 2);
   });
 
@@ -46,7 +47,7 @@ describe('_sendBatchRequests', () => {
     };
     const items: any[] = [];
 
-    await _sendBatchRequests('fake-url', items, optionsFactory);
+    await _sendBatchRequests<sendSafeRequestModule.ISafeResponse>('fake-url', items, optionsFactory);
     expect(optionsFactoryInvocations).toEqual(3)
   });
 
@@ -70,19 +71,39 @@ describe('_sendBatchRequests', () => {
     };
     const items: any[] = [];
 
-    await _sendBatchRequests('fake-url', items, optionsFactory);
+    await _sendBatchRequests<sendSafeRequestModule.ISafeResponse>('fake-url', items, optionsFactory);
     expect(sendSafeRequestSpy).toHaveBeenCalledWith('fake-url', thisOptions);
     expect(sendSafeRequestSpy).toHaveBeenCalledWith('fake-url', isOptions);
     expect(sendSafeRequestSpy).toHaveBeenCalledWith('fake-url', spartaOptions);
   });
 
   it('Returns a promise that resolves to an array of responses (one for each batch)', async () => {
-    sendSafeRequestSpy.and.callFake(() => Promise.resolve());
-    chunkSpy.and.callFake(() => (['this', 'is', 'sparta']));
-    const optionsFactory: (items: any) => any = () => null
-    const items: any[] = [];
+    interface IMyResponse extends sendSafeRequestModule.ISafeResponse {
+      numAdded: number
+    }
+      
+    const items: any = ['apple', 'pear', 'orange', 'grape'];
+    
+    const optionsFactory: (items: any) => IRequestOptions = (items) => {
+      return {
+        params: {
+          foods: items,
+          type: 'fruit',
+        }
+      }
+    }
 
-    const result = await _sendBatchRequests('fake-url', items, optionsFactory);
-    expect(result.length).toEqual(3);
+    chunkSpy.and.callFake(() => ([['apple', 'pear'], ['orange', 'grape']]));
+    sendSafeRequestSpy.and.callFake(() => Promise.resolve({ success: true, numAdded: 2 }));
+    
+    const actualResults: IMyResponse[] = await _sendBatchRequests<IMyResponse>('my-url', items, optionsFactory, 2) // Batch Size of 2
+    
+    const expectedResults = [
+      { success: true, numAdded: 2 },
+      { success: true, numAdded: 2 }
+    ];
+
+    expect(actualResults).toEqual(expectedResults);
+  
   });
 });
